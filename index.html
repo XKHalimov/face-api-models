@@ -6,7 +6,7 @@
     <title>Yuz Aniqlash va Tanish Tizimi</title>
     <script
       defer
-      src="https://cdnjs.cloudflare.com/ajax/libs/face-api.js/0.22.2/face-api.min.js"
+      src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.min.js"
     ></script>
     <style>
       * {
@@ -246,14 +246,24 @@
 
       <div class="info">
         <strong>📌 Qo'llanma:</strong><br />
-        1. Kamerani yoqing<br />
-        2. Ismni kiriting va yuzingizni kameraga ko'rsating<br />
-        3. "Yuzni Saqlash" tugmasini bosing<br />
-        4. "Tanishni Boshlash" tugmasini bosib, real vaqtda yuz tanishni
+        1. <strong>"Kamerani Yoqish"</strong> tugmasini bosing<br />
+        2. Brauzer ruxsat so'raganida <strong>"Allow/Ruxsat berish"</strong> ni
+        bosing<br />
+        3. Ismni kiriting va yuzingizni kameraga ko'rsating<br />
+        4. "Yuzni Saqlash" tugmasini bosing<br />
+        5. "Tanishni Boshlash" tugmasini bosib, real vaqtda yuz tanishni
         boshlang<br />
         <br />
-        <strong>⚠️ Eslatma:</strong> Bu veb versiya - ma'lumotlar faqat brauzer
-        xotirasida saqlanadi.
+        <strong>⚠️ Eslatmalar:</strong><br />
+        • HTTPS yoki localhost da ishlating (http:// ishlamaydi)<br />
+        • Chrome, Firefox yoki Edge ishlatish tavsiya etiladi<br />
+        • Kamera ruxsatini brauzer sozlamalaridan tekshiring<br />
+        • Ma'lumotlar faqat brauzer xotirasida (localStorage) saqlanadi<br />
+        <br />
+        <strong>🔧 Muammo bo'lsa:</strong><br />
+        • F12 ni bosib Console ni oching va xatolarni ko'ring<br />
+        • Boshqa dasturlar kamerani band qilmagan bo'lsin<br />
+        • Brauzer sozlamalarida kamera ruxsati berilgan bo'lsin
       </div>
     </div>
 
@@ -270,40 +280,96 @@
       // Modellarni yuklash
       async function modellarniYuklash() {
         try {
-          const MODEL_URL =
-            "https://cdnjs.cloudflare.com/ajax/libs/face-api.js/0.22.2/weights";
+          statusDiv.textContent =
+            "⏳ Modellar yuklanmoqda... Kutib turing (10-20 soniya)";
 
+          // Face-api.js mavjudligini tekshirish
+          if (typeof faceapi === "undefined") {
+            throw new Error(
+              "face-api.js kutubxonasi yuklanmadi! Internet aloqasini tekshiring."
+            );
+          }
+
+          // Model URL - jsdelivr orqali (yanada ishonchli)
+          const MODEL_URL =
+            "https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model";
+
+          statusDiv.textContent = "⏳ TinyFaceDetector yuklanmoqda...";
           await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+
+          statusDiv.textContent = "⏳ FaceLandmark yuklanmoqda...";
           await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+
+          statusDiv.textContent = "⏳ FaceRecognition yuklanmoqda...";
           await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+
+          statusDiv.textContent = "⏳ FaceExpression yuklanmoqda...";
           await faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL);
 
           statusDiv.className = "status success";
           statusDiv.textContent =
-            "✅ Modellar muvaffaqiyatli yuklandi! Kamerani yoqishingiz mumkin.";
+            "✅ Barcha modellar muvaffaqiyatli yuklandi! Kamerani yoqishingiz mumkin.";
           document.getElementById("startBtn").disabled = false;
 
           // Saqlangan ma'lumotlarni yuklash
           yuklanganMalumotlarniKorsatish();
         } catch (error) {
           statusDiv.className = "status error";
-          statusDiv.textContent =
-            "❌ Xato: Modellarni yuklashda muammo yuz berdi!";
-          console.error(error);
+          statusDiv.textContent = "❌ Xato: " + error.message;
+          console.error("Model yuklash xatosi:", error);
+
+          // Batafsil ko'rsatma
+          setTimeout(() => {
+            statusDiv.innerHTML = `
+                        <strong>❌ Modellarni yuklashda xato!</strong><br><br>
+                        <strong>Sabablari:</strong><br>
+                        • Internet aloqasi yo'q yoki sekin<br>
+                        • CDN bloklangan bo'lishi mumkin<br>
+                        • Brauzer modellarni yuklay olmaydi<br><br>
+                        <strong>Yechimlar:</strong><br>
+                        1. Internet aloqangizni tekshiring<br>
+                        2. Sahifani yangilang (F5 yoki Ctrl+R)<br>
+                        3. VPN yoqib ko'ring<br>
+                        4. Boshqa brauzer (Chrome/Firefox) ishlatib ko'ring<br>
+                        5. F12 ni bosib Console'dagi xatolarni ko'ring
+                    `;
+          }, 2000);
         }
       }
 
       // Kamerani yoqish
       async function kameraniYoqish() {
         try {
+          statusDiv.className = "status";
+          statusDiv.textContent = "⏳ Kamera yoqilmoqda... Ruxsat bering.";
+
+          // Brauzer qo'llab-quvvatlashini tekshirish
+          if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            throw new Error(
+              "Sizning brauzeringiz kamerani qo'llab-quvvatlamaydi!"
+            );
+          }
+
+          // Kamera ruxsatini so'rash
           stream = await navigator.mediaDevices.getUserMedia({
-            video: { width: 640, height: 480 },
+            video: {
+              width: { ideal: 640 },
+              height: { ideal: 480 },
+              facingMode: "user", // Old kamera
+            },
+            audio: false,
           });
+
           video.srcObject = stream;
 
-          video.addEventListener("loadedmetadata", () => {
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
+          // Video yuklashini kutish
+          await new Promise((resolve) => {
+            video.onloadedmetadata = () => {
+              video.play();
+              canvas.width = video.videoWidth;
+              canvas.height = video.videoHeight;
+              resolve();
+            };
           });
 
           document.getElementById("startBtn").disabled = true;
@@ -312,11 +378,34 @@
           document.getElementById("recognizeBtn").disabled = false;
 
           statusDiv.className = "status success";
-          statusDiv.textContent = "📹 Kamera yoqildi!";
+          statusDiv.textContent = "📹 Kamera muvaffaqiyatli yoqildi!";
         } catch (error) {
           statusDiv.className = "status error";
-          statusDiv.textContent = "❌ Kamerani yoqishda xato!";
-          console.error(error);
+
+          // Turli xato turlari uchun ma'lumotlar
+          if (
+            error.name === "NotAllowedError" ||
+            error.name === "PermissionDeniedError"
+          ) {
+            statusDiv.textContent =
+              "❌ Kamera ruxsati berilmadi! Brauzer sozlamalaridan ruxsat bering.";
+          } else if (
+            error.name === "NotFoundError" ||
+            error.name === "DevicesNotFoundError"
+          ) {
+            statusDiv.textContent =
+              "❌ Kamera topilmadi! Kamera ulanganligini tekshiring.";
+          } else if (
+            error.name === "NotReadableError" ||
+            error.name === "TrackStartError"
+          ) {
+            statusDiv.textContent =
+              "❌ Kamera band! Boshqa dasturda ishlatilayotgan bo'lishi mumkin.";
+          } else {
+            statusDiv.textContent = "❌ Xato: " + error.message;
+          }
+
+          console.error("Kamera xatosi:", error);
         }
       }
 
