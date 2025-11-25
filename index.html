@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="uz">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Yuz Aniqlash va Tanish Tizimi</title>
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/face-api.js/0.22.2/face-api.min.js"
+    ></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 20px;
+        padding: 30px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      }
+
+      h1 {
+        text-align: center;
+        color: #667eea;
+        margin-bottom: 30px;
+        font-size: 2.5em;
+      }
+
+      .controls {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 15px;
+        margin-bottom: 30px;
+      }
+
+      .control-group {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 10px;
+        border: 2px solid #e9ecef;
+      }
+
+      .control-group h3 {
+        color: #495057;
+        margin-bottom: 15px;
+        font-size: 1.2em;
+      }
+
+      input[type="text"] {
+        width: 100%;
+        padding: 10px;
+        border: 2px solid #dee2e6;
+        border-radius: 5px;
+        font-size: 16px;
+        margin-bottom: 10px;
+      }
+
+      button {
+        width: 100%;
+        padding: 12px;
+        background: #667eea;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-weight: bold;
+      }
+
+      button:hover {
+        background: #5568d3;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+      }
+
+      button:disabled {
+        background: #adb5bd;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .video-container {
+        position: relative;
+        background: #000;
+        border-radius: 15px;
+        overflow: hidden;
+        margin-bottom: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      }
+
+      video,
+      canvas {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+
+      canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
+
+      .status {
+        padding: 15px;
+        background: #d1ecf1;
+        border: 2px solid #bee5eb;
+        border-radius: 8px;
+        color: #0c5460;
+        margin-bottom: 20px;
+        font-weight: 500;
+      }
+
+      .status.success {
+        background: #d4edda;
+        border-color: #c3e6cb;
+        color: #155724;
+      }
+
+      .status.error {
+        background: #f8d7da;
+        border-color: #f5c6cb;
+        color: #721c24;
+      }
+
+      .faces-list {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 10px;
+        margin-top: 20px;
+      }
+
+      .faces-list h3 {
+        color: #495057;
+        margin-bottom: 15px;
+      }
+
+      .face-item {
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        border: 2px solid #e9ecef;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .face-item img {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin-right: 15px;
+      }
+
+      .delete-btn {
+        width: auto;
+        padding: 8px 15px;
+        background: #dc3545;
+        font-size: 14px;
+      }
+
+      .delete-btn:hover {
+        background: #c82333;
+      }
+
+      .info {
+        background: #fff3cd;
+        border: 2px solid #ffeaa7;
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 20px;
+        color: #856404;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🎭 Yuz Aniqlash va Tanish Tizimi</h1>
+
+      <div id="status" class="status">Model yuklanmoqda...</div>
+
+      <div class="controls">
+        <div class="control-group">
+          <h3>📸 Kamerani Boshqarish</h3>
+          <button id="startBtn" onclick="kameraniYoqish()">
+            Kamerani Yoqish
+          </button>
+          <button
+            id="stopBtn"
+            onclick="kameraniOchirish()"
+            disabled
+            style="margin-top: 10px; background: #dc3545"
+          >
+            Kamerani O'chirish
+          </button>
+        </div>
+
+        <div class="control-group">
+          <h3>➕ Yangi Odam Qo'shish</h3>
+          <input type="text" id="nameInput" placeholder="Ismni kiriting..." />
+          <button onclick="yuzniSaqlash()" id="saveBtn" disabled>
+            Yuzni Saqlash
+          </button>
+        </div>
+
+        <div class="control-group">
+          <h3>🔍 Yuz Tanish</h3>
+          <button onclick="tanishniYoqish()" id="recognizeBtn" disabled>
+            Tanishni Boshlash
+          </button>
+          <button
+            onclick="tanishniOchirish()"
+            id="stopRecognizeBtn"
+            disabled
+            style="margin-top: 10px; background: #ffc107"
+          >
+            Tanishni To'xtatish
+          </button>
+        </div>
+      </div>
+
+      <div class="video-container">
+        <video id="video" autoplay muted></video>
+        <canvas id="canvas"></canvas>
+      </div>
+
+      <div class="faces-list">
+        <h3>👤 Saqlangan Yuzlar</h3>
+        <div id="facesList">Ma'lumot yo'q</div>
+      </div>
+
+      <div class="info">
+        <strong>📌 Qo'llanma:</strong><br />
+        1. Kamerani yoqing<br />
+        2. Ismni kiriting va yuzingizni kameraga ko'rsating<br />
+        3. "Yuzni Saqlash" tugmasini bosing<br />
+        4. "Tanishni Boshlash" tugmasini bosib, real vaqtda yuz tanishni
+        boshlang<br />
+        <br />
+        <strong>⚠️ Eslatma:</strong> Bu veb versiya - ma'lumotlar faqat brauzer
+        xotirasida saqlanadi.
+      </div>
+    </div>
+
+    <script>
+      let video = document.getElementById("video");
+      let canvas = document.getElementById("canvas");
+      let statusDiv = document.getElementById("status");
+      let stream = null;
+      let recognitionInterval = null;
+
+      // Saqlangan yuzlar ma'lumotlari
+      let savedFaces = [];
+
+      // Modellarni yuklash
+      async function modellarniYuklash() {
+        try {
+          const MODEL_URL =
+            "https://cdnjs.cloudflare.com/ajax/libs/face-api.js/0.22.2/weights";
+
+          await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+          await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+          await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+          await faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL);
+
+          statusDiv.className = "status success";
+          statusDiv.textContent =
+            "✅ Modellar muvaffaqiyatli yuklandi! Kamerani yoqishingiz mumkin.";
+          document.getElementById("startBtn").disabled = false;
+
+          // Saqlangan ma'lumotlarni yuklash
+          yuklanganMalumotlarniKorsatish();
+        } catch (error) {
+          statusDiv.className = "status error";
+          statusDiv.textContent =
+            "❌ Xato: Modellarni yuklashda muammo yuz berdi!";
+          console.error(error);
+        }
+      }
+
+      // Kamerani yoqish
+      async function kameraniYoqish() {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { width: 640, height: 480 },
+          });
+          video.srcObject = stream;
+
+          video.addEventListener("loadedmetadata", () => {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+          });
+
+          document.getElementById("startBtn").disabled = true;
+          document.getElementById("stopBtn").disabled = false;
+          document.getElementById("saveBtn").disabled = false;
+          document.getElementById("recognizeBtn").disabled = false;
+
+          statusDiv.className = "status success";
+          statusDiv.textContent = "📹 Kamera yoqildi!";
+        } catch (error) {
+          statusDiv.className = "status error";
+          statusDiv.textContent = "❌ Kamerani yoqishda xato!";
+          console.error(error);
+        }
+      }
+
+      // Kamerani o'chirish
+      function kameraniOchirish() {
+        if (stream) {
+          stream.getTracks().forEach((track) => track.stop());
+          video.srcObject = null;
+        }
+
+        tanishniOchirish();
+
+        document.getElementById("startBtn").disabled = false;
+        document.getElementById("stopBtn").disabled = true;
+        document.getElementById("saveBtn").disabled = true;
+        document.getElementById("recognizeBtn").disabled = true;
+
+        statusDiv.className = "status";
+        statusDiv.textContent = "Kamera o'chirildi.";
+      }
+
+      // Yuzni saqlash
+      async function yuzniSaqlash() {
+        const name = document.getElementById("nameInput").value.trim();
+
+        if (!name) {
+          alert("Iltimos, ismni kiriting!");
+          return;
+        }
+
+        statusDiv.className = "status";
+        statusDiv.textContent = "Yuz aniqlanmoqda...";
+
+        try {
+          const detections = await faceapi
+            .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
+            .withFaceLandmarks()
+            .withFaceDescriptor();
+
+          if (detections) {
+            savedFaces.push({
+              name: name,
+              descriptor: Array.from(detections.descriptor),
+              id: Date.now(),
+            });
+
+            // LocalStorage'ga saqlash
+            localStorage.setItem("savedFaces", JSON.stringify(savedFaces));
+
+            statusDiv.className = "status success";
+            statusDiv.textContent = `✅ ${name}ning yuzi saqlandi!`;
+
+            document.getElementById("nameInput").value = "";
+            yuklanganMalumotlarniKorsatish();
+          } else {
+            statusDiv.className = "status error";
+            statusDiv.textContent =
+              "❌ Yuz aniqlanmadi! Qaytadan urinib ko'ring.";
+          }
+        } catch (error) {
+          statusDiv.className = "status error";
+          statusDiv.textContent = "❌ Xato yuz berdi!";
+          console.error(error);
+        }
+      }
+
+      // Tanishni yoqish
+      function tanishniYoqish() {
+        if (savedFaces.length === 0) {
+          alert("Avval yuzlarni saqlang!");
+          return;
+        }
+
+        document.getElementById("recognizeBtn").disabled = true;
+        document.getElementById("stopRecognizeBtn").disabled = false;
+
+        statusDiv.className = "status success";
+        statusDiv.textContent = "🔍 Yuz tanish faol...";
+
+        recognitionInterval = setInterval(yuzniTanish, 100);
+      }
+
+      // Tanishni o'chirish
+      function tanishniOchirish() {
+        if (recognitionInterval) {
+          clearInterval(recognitionInterval);
+          recognitionInterval = null;
+        }
+
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        document.getElementById("recognizeBtn").disabled = false;
+        document.getElementById("stopRecognizeBtn").disabled = true;
+
+        statusDiv.className = "status";
+        statusDiv.textContent = "Yuz tanish to'xtatildi.";
+      }
+
+      // Yuzni tanish
+      async function yuzniTanish() {
+        const detections = await faceapi
+          .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
+          .withFaceLandmarks()
+          .withFaceDescriptors();
+
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        detections.forEach((detection) => {
+          const box = detection.detection.box;
+
+          // Eng yaqin yuzni topish
+          let bestMatch = { name: "Noma'lum", distance: 0.6 };
+
+          savedFaces.forEach((saved) => {
+            const distance = faceapi.euclideanDistance(
+              detection.descriptor,
+              new Float32Array(saved.descriptor)
+            );
+
+            if (distance < bestMatch.distance) {
+              bestMatch = { name: saved.name, distance: distance };
+            }
+          });
+
+          // Chizish
+          const color = bestMatch.name === "Noma'lum" ? "red" : "green";
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 3;
+          ctx.strokeRect(box.x, box.y, box.width, box.height);
+
+          ctx.fillStyle = color;
+          ctx.font = "bold 20px Arial";
+          ctx.fillText(
+            `${bestMatch.name} (${Math.round(
+              (1 - bestMatch.distance) * 100
+            )}%)`,
+            box.x,
+            box.y - 10
+          );
+        });
+      }
+
+      // Saqlangan yuzlarni ko'rsatish
+      function yuklanganMalumotlarniKorsatish() {
+        const saved = localStorage.getItem("savedFaces");
+        if (saved) {
+          savedFaces = JSON.parse(saved);
+        }
+
+        const list = document.getElementById("facesList");
+        if (savedFaces.length === 0) {
+          list.innerHTML = "Ma'lumot yo'q";
+        } else {
+          list.innerHTML = savedFaces
+            .map(
+              (face) => `
+                    <div class="face-item">
+                        <strong>${face.name}</strong>
+                        <button class="delete-btn" onclick="yuzniOchirish(${face.id})">O'chirish</button>
+                    </div>
+                `
+            )
+            .join("");
+        }
+      }
+
+      // Yuzni o'chirish
+      function yuzniOchirish(id) {
+        savedFaces = savedFaces.filter((f) => f.id !== id);
+        localStorage.setItem("savedFaces", JSON.stringify(savedFaces));
+        yuklanganMalumotlarniKorsatish();
+
+        statusDiv.className = "status success";
+        statusDiv.textContent = "✅ Yuz o'chirildi!";
+      }
+
+      // Sahifa yuklanganda
+      window.addEventListener("load", modellarniYuklash);
+    </script>
+  </body>
+</html>
